@@ -1,0 +1,62 @@
+name: terraform
+
+on:
+  pull_request:
+    paths: ["envs/**", "modules/**"]
+  push:
+    branches: [main]
+    paths: ["envs/**", "modules/**"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_VAR_github_repo: ${{ github.repository }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - run: terraform fmt -check -recursive ../..
+      - run: terraform init -input=false
+      - run: terraform validate
+      - run: terraform plan -input=false
+
+  apply:
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: envs/dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - run: terraform init -input=false
+      - run: terraform apply -auto-approve -input=false
