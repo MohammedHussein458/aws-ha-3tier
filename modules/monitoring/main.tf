@@ -10,6 +10,7 @@ resource "aws_sns_topic_subscription" "email" {
 
 # 5xx من الـ ALB
 resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  count               = var.enable_app ? 1 : 0
   alarm_name          = "${var.name}-alb-5xx"
   namespace           = "AWS/ApplicationELB"
   metric_name         = "HTTPCode_ELB_5XX_Count"
@@ -26,8 +27,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
 
 # سيرفرات مش Healthy
 resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
-  alarm_name = "${var.name}-unhealthy-hosts"
-  namespace  = "AWS/ApplicationELB"
+  count       = var.enable_app ? 1 : 0
+  alarm_name  = "${var.name}-unhealthy-hosts"
+  namespace   = "AWS/ApplicationELB"
   metric_name = "UnHealthyHostCount"
   dimensions = {
     TargetGroup  = var.tg_arn_suffix
@@ -45,6 +47,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
 
 # CPU عالي على الـ ASG
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  count               = var.enable_app ? 1 : 0
   alarm_name          = "${var.name}-cpu-high"
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"

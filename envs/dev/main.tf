@@ -6,6 +6,22 @@ variable "enable_nat" {
   default = false
 }
 
+variable "multi_az" {
+  default = false
+}
+
+variable "alert_email" {
+  type = string
+}
+
+variable "enable_compute" {
+  default = false
+}
+
+variable "enable_edge" {
+  default = false
+}
+
 provider "aws" {
   region = var.region
 
@@ -37,10 +53,6 @@ module "security" {
   vpc_id = module.vpc.vpc_id
 }
 
-variable "multi_az" {
-  default = false
-}
-
 module "database" {
   source = "../../modules/database"
 
@@ -50,8 +62,8 @@ module "database" {
   multi_az      = var.multi_az
 }
 
-
 module "compute" {
+  count  = var.enable_compute ? 1 : 0
   source = "../../modules/compute"
 
   name                  = "ha3tier-dev"
@@ -63,33 +75,31 @@ module "compute" {
   instance_profile_name = module.security.instance_profile_name
 }
 
-output "alb_url" {
-  value = "http://${module.compute.alb_dns_name}"
-}
-
-
-variable "alert_email" {
-  type = string
-}
-
 module "edge" {
+  count  = var.enable_edge && var.enable_compute ? 1 : 0
   source = "../../modules/edge"
 
   name         = "ha3tier-dev"
-  alb_dns_name = module.compute.alb_dns_name
+  alb_dns_name = module.compute[0].alb_dns_name
 }
 
 module "monitoring" {
   source = "../../modules/monitoring"
 
-  name           = "ha3tier-dev"
-  alert_email    = var.alert_email
-  alb_arn_suffix = module.compute.alb_arn_suffix
-  tg_arn_suffix  = module.compute.tg_arn_suffix
-  asg_name       = module.compute.asg_name
-  db_identifier  = module.database.db_identifier
+  name          = "ha3tier-dev"
+  alert_email   = var.alert_email
+  db_identifier = module.database.db_identifier
+
+  enable_app     = var.enable_compute
+  alb_arn_suffix = try(module.compute[0].alb_arn_suffix, "")
+  tg_arn_suffix  = try(module.compute[0].tg_arn_suffix, "")
+  asg_name       = try(module.compute[0].asg_name, "")
+}
+
+output "alb_url" {
+  value = try("http://${module.compute[0].alb_dns_name}", "compute disabled")
 }
 
 output "cloudfront_url" {
-  value = "https://${module.edge.cloudfront_domain}"
+  value = try("https://${module.edge[0].cloudfront_domain}", "edge disabled")
 }

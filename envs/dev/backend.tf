@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "tfstate-550939891229-ha3tier"
+    bucket       = "tfstate-956118718582-ha3tier"
     key          = "dev/terraform.tfstate"
     region       = "eu-central-1"
     use_lockfile = true

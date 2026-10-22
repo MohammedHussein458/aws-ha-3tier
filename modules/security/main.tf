@@ -98,8 +98,8 @@ resource "aws_iam_role_policy" "read_params" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
-      Action = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+      Effect   = "Allow"
+      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
       Resource = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.me.account_id}:parameter/${var.name}/*"
     }]
   })
